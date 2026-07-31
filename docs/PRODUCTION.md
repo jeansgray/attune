@@ -63,30 +63,29 @@ railway run npx prisma db seed   # optional demo users — remove before heavy a
 
 Public API URL will look like: `https://attune-api-production.up.railway.app`
 
-## 3) Deploy web (Vercel)
+## 3) Deploy web (Vercel) — fix “No Next.js version detected”
 
-```bash
-npm i -g vercel
-cd apps/web
-vercel login
-vercel link   # root should be apps/web OR use vercel.json at repo root
-vercel --prod
-```
+This is a **monorepo**. Next.js lives in `apps/web/package.json`, not the repo root.
 
-Vercel project settings:
+### In the Vercel dashboard
 
-- **Root Directory:** `apps/web`
-- **Install Command:** `cd ../.. && pnpm install`
-- **Build Command:** `cd ../.. && pnpm --filter @attune/shared build && pnpm --filter @attune/web build`
-- **Output Directory:** `.next`
+1. Open your project → **Settings → General**
+2. **Root Directory** → click **Edit** → set to `apps/web` → Save  
+   (This is the fix for “No Next.js version detected.”)
+3. **Settings → Build & Development Settings** (should auto-detect Next.js once root is `apps/web`):
+   - Framework Preset: **Next.js**
+   - Install Command: `cd ../.. && pnpm install` (override ON)
+   - Build Command: `cd ../.. && pnpm --filter @attune/shared build && pnpm --filter @attune/web build` (override ON)
+   - Output Directory: leave default (`.next`)
+4. Under Root Directory, enable **Include source files outside of the Root Directory in the Build Step** if shown
+5. **Settings → Environment Variables** (Production):
+   ```
+   NEXT_PUBLIC_API_URL=https://YOUR_RAILWAY_API_URL
+   ```
+   (You can temporarily use a placeholder; the site will load, but login/discover need the real API.)
+6. **Deployments → Redeploy** (or push a new commit)
 
-Env vars on Vercel:
-
-```
-NEXT_PUBLIC_API_URL=https://YOUR_RAILWAY_API_URL
-```
-
-Repo root includes [vercel.json](../vercel.json) to help monorepo installs.
+Config in repo: [`apps/web/vercel.json`](../apps/web/vercel.json)
 
 ## 4) Stripe webhooks
 
