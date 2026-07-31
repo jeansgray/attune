@@ -11,9 +11,9 @@ async function bootstrap() {
     credentials: true,
   });
   app.setGlobalPrefix("api");
-  const port = Number(process.env.API_PORT ?? 4000);
-  await app.listen(port);
-  console.log(`Attune API listening on http://localhost:${port}`);
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
+  await app.listen(port, "0.0.0.0");
+  console.log(`Attune API listening on http://0.0.0.0:${port}`);
 }
 
 bootstrap();
