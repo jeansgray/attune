@@ -29,7 +29,9 @@ export async function api<T>(
   opts: RequestInit & { auth?: boolean } = {},
 ): Promise<T> {
   const headers = new Headers(opts.headers);
-  headers.set("Content-Type", "application/json");
+  if (!(opts.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (opts.auth !== false) {
     const token = getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -45,4 +47,13 @@ export async function api<T>(
     throw new Error(extractErrorMessage(err));
   }
   return res.json() as Promise<T>;
+}
+
+export async function uploadPhoto(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return api<{ url: string; photoUrls: string[] }>("/profiles/me/photos", {
+    method: "POST",
+    body: form,
+  });
 }

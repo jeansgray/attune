@@ -14,7 +14,7 @@ import {
   type NeurotypeTag,
 } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
-import { api, getToken } from "@/lib/api";
+import { api, getToken, uploadPhoto } from "@/lib/api";
 
 type SliderKey = keyof Pick<
   NeedsProfile,
@@ -61,10 +61,27 @@ export default function OnboardingPage() {
   const [interests, setInterests] = useState("coding, sci-fi, cats");
   const [needs, setNeeds] = useState<NeedsProfile>(DEFAULT_NEEDS);
   const [bio, setBio] = useState("");
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!getToken()) router.replace("/login");
   }, [router]);
+
+  async function onPhotoSelected(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const res = await uploadPhoto(file);
+      setPhotoUrls(res.photoUrls.filter((u) => !u.includes("api.dicebear.com")));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Photo upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const interestList = useMemo(
     () =>
@@ -121,6 +138,39 @@ export default function OnboardingPage() {
 
           {step === 0 && (
             <>
+              <div className="field">
+                <label htmlFor="photos">Profile photos</label>
+                <p className="meta" style={{ marginBottom: "0.5rem" }}>
+                  Upload at least one real photo (JPEG/PNG/WebP, up to 5MB). Max 6.
+                </p>
+                <input
+                  id="photos"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  disabled={uploading || photoUrls.length >= 6}
+                  onChange={(e) => void onPhotoSelected(e.target.files)}
+                />
+                {uploading ? <p className="meta">Uploading…</p> : null}
+                {photoUrls.length ? (
+                  <div className="chip-row" style={{ marginTop: "0.75rem" }}>
+                    {photoUrls.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={url}
+                        alt=""
+                        style={{
+                          width: 72,
+                          height: 72,
+                          objectFit: "cover",
+                          borderRadius: 12,
+                          border: "1px solid var(--line)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <div className="field">
                 <label>Neurotype tags (optional)</label>
                 <div className="chip-row">
@@ -282,7 +332,18 @@ export default function OnboardingPage() {
               </button>
             ) : null}
             {step < 2 ? (
-              <button className="btn" type="button" onClick={() => setStep((s) => s + 1)}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  if (step === 0 && photoUrls.length < 1) {
+                    setError("Please upload at least one profile photo before continuing.");
+                    return;
+                  }
+                  setError("");
+                  setStep((s) => s + 1);
+                }}
+              >
                 Next
               </button>
             ) : (

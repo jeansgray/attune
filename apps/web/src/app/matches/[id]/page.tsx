@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SiteNav } from "@/components/AppNav";
+import { SafetyActions } from "@/components/SafetyActions";
 import { api, getToken } from "@/lib/api";
 
 type Message = {
@@ -12,19 +13,31 @@ type Message = {
   createdAt: string;
 };
 
+type MatchMeta = {
+  id: string;
+  userAId: string;
+  userBId: string;
+};
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [me, setMe] = useState<string>("");
+  const [otherUserId, setOtherUserId] = useState<string>("");
   const [body, setBody] = useState("");
   const [error, setError] = useState("");
 
   async function load() {
     const meRes = await api<{ id: string }>("/auth/me");
     setMe(meRes.id);
-    const res = await api<{ messages: Message[] }>(`/matches/${params.id}/messages`);
+    const res = await api<{ match: MatchMeta; messages: Message[] }>(
+      `/matches/${params.id}/messages`,
+    );
     setMessages(res.messages);
+    const other =
+      res.match.userAId === meRes.id ? res.match.userBId : res.match.userAId;
+    setOtherUserId(other);
   }
 
   useEffect(() => {
@@ -56,6 +69,12 @@ export default function ChatPage() {
       <main className="container" style={{ paddingBottom: "3rem" }}>
         <div className="page-head">
           <h1>Chat</h1>
+          {otherUserId ? (
+            <SafetyActions
+              userId={otherUserId}
+              onBlocked={() => router.push("/matches")}
+            />
+          ) : null}
         </div>
         {error ? <p className="error">{error}</p> : null}
         <div className="chat-list" style={{ marginBottom: "1rem" }}>
@@ -65,7 +84,9 @@ export default function ChatPage() {
             </div>
           ))}
           {messages.length === 0 ? (
-            <p className="meta">No messages yet. Icebreaker: what&apos;s your current special interest?</p>
+            <p className="meta">
+              No messages yet. Icebreaker: what&apos;s your current special interest?
+            </p>
           ) : null}
         </div>
         <form onSubmit={send} style={{ display: "flex", gap: "0.6rem" }}>

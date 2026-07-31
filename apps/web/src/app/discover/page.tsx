@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { INTENT_LABELS, NEUROTYPE_LABELS, type NeurotypeTag } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
+import { SafetyActions } from "@/components/SafetyActions";
 import { api, getToken } from "@/lib/api";
 
 type Entitlement = {
@@ -165,7 +166,15 @@ export default function DiscoverPage() {
                     <div>{card.prompts[0].answer}</div>
                   </div>
                 ) : null}
-                <div style={{ marginTop: "1rem", display: "flex", gap: "0.6rem" }}>
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    display: "flex",
+                    gap: "0.6rem",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
                   <button
                     className="btn"
                     type="button"
@@ -181,6 +190,13 @@ export default function DiscoverPage() {
                   >
                     Pass
                   </button>
+                  <SafetyActions
+                    userId={card.userId}
+                    displayName={card.profile.displayName}
+                    onBlocked={() =>
+                      setItems((prev) => prev.filter((i) => i.userId !== card.userId))
+                    }
+                  />
                 </div>
                 {card.score.interestBonus > 0 ? (
                   <p className="meta" style={{ marginTop: "0.6rem" }}>

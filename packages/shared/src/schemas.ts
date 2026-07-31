@@ -1,11 +1,21 @@
 import { z } from "zod";
+import { isAtLeastAge, maxBirthYearForMinAge, MIN_AGE, MIN_BIRTH_YEAR } from "./age";
 import { Genders, NeurotypeTags, Pronouns, SocialBatteryLevels } from "./enums";
 import { NeedsProfileSchema } from "./needs";
+
+const birthYearSchema = z
+  .number()
+  .int()
+  .min(MIN_BIRTH_YEAR)
+  .refine((year) => isAtLeastAge(year), {
+    message: `You must be at least ${MIN_AGE} years old to use Attune`,
+  });
 
 export const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
   displayName: z.string().min(1).max(40),
+  birthYear: birthYearSchema,
 });
 
 export const LoginSchema = z.object({
@@ -16,7 +26,7 @@ export const LoginSchema = z.object({
 export const UpdateProfileSchema = z.object({
   displayName: z.string().min(1).max(40).optional(),
   bio: z.string().max(600).optional(),
-  birthYear: z.number().int().min(1940).max(2010).optional(),
+  birthYear: birthYearSchema.optional(),
   gender: z.enum(Genders).optional(),
   pronouns: z.enum(Pronouns).optional(),
   city: z.string().max(80).optional(),
@@ -55,3 +65,8 @@ export const ReportSchema = z.object({
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+
+/** UI helper — latest selectable birth year for 18+. */
+export function latestAllowedBirthYear() {
+  return maxBirthYearForMinAge();
+}

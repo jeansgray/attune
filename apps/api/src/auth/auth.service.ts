@@ -27,6 +27,7 @@ export class AuthService {
         profile: {
           create: {
             displayName: input.displayName,
+            birthYear: input.birthYear,
             photoUrls: [
               `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(input.displayName)}&backgroundColor=d7ebe4`,
             ],

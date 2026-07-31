@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { latestAllowedBirthYear, MIN_AGE, MIN_BIRTH_YEAR } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
 import { api, setToken } from "@/lib/api";
 
@@ -10,12 +11,14 @@ export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const maxYear = useMemo(() => latestAllowedBirthYear(), []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
     const form = new FormData(e.currentTarget);
+    const birthYear = Number(form.get("birthYear"));
     try {
       const res = await api<{ accessToken: string }>("/auth/register", {
         method: "POST",
@@ -24,6 +27,7 @@ export default function RegisterPage() {
           email: form.get("email"),
           password: form.get("password"),
           displayName: form.get("displayName"),
+          birthYear,
         }),
       });
       setToken(res.accessToken);
@@ -43,6 +47,7 @@ export default function RegisterPage() {
           <h1 style={{ marginTop: 0 }}>Join Attune</h1>
           <p className="meta">
             Friends, romance, or both — build a needs profile and match on what matters.
+            You must be {MIN_AGE}+.
           </p>
           {error ? <p className="error">{error}</p> : null}
           <div className="field">
@@ -56,6 +61,21 @@ export default function RegisterPage() {
           <div className="field">
             <label htmlFor="password">Password</label>
             <input id="password" name="password" type="password" required minLength={8} />
+          </div>
+          <div className="field">
+            <label htmlFor="birthYear">Birth year</label>
+            <input
+              id="birthYear"
+              name="birthYear"
+              type="number"
+              required
+              min={MIN_BIRTH_YEAR}
+              max={maxYear}
+              placeholder={`e.g. ${maxYear - 5}`}
+            />
+            <p className="meta" style={{ marginTop: "0.35rem" }}>
+              Attune is for adults {MIN_AGE} and over (born {maxYear} or earlier).
+            </p>
           </div>
           <button className="btn" type="submit" disabled={loading}>
             {loading ? "Creating…" : "Continue"}
