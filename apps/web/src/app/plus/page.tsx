@@ -31,10 +31,28 @@ export default function PlusPage() {
       router.replace("/login");
       return;
     }
-    if (typeof window !== "undefined") {
-      setSuccess(new URLSearchParams(window.location.search).get("success") === "1");
-    }
-    refresh().catch((err) => setError(err instanceof Error ? err.message : "Failed"));
+    const params = new URLSearchParams(window.location.search);
+    const ok = params.get("success") === "1";
+    const sessionId = params.get("session_id");
+    setSuccess(ok);
+    (async () => {
+      try {
+        if (ok && sessionId) {
+          const res = await api<{ confirmed: boolean; entitlement: Entitlement }>(
+            "/billing/confirm-session",
+            {
+              method: "POST",
+              body: JSON.stringify({ sessionId }),
+            },
+          );
+          setEntitlement(res.entitlement);
+          return;
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed");
+      }
+    })();
   }, [router]);
 
   async function checkout(productKey: "monthly" | "yearly") {
@@ -47,14 +65,7 @@ export default function PlusPage() {
       });
       if (res.url) window.location.href = res.url;
     } catch (err) {
-      try {
-        await api("/billing/dev-grant", { method: "POST" });
-        await refresh();
-        setError("");
-        alert("Attune Plus activated (dev mode — connect Stripe for real billing).");
-      } catch {
-        setError(err instanceof Error ? err.message : "Checkout failed");
-      }
+      setError(err instanceof Error ? err.message : "Checkout failed");
     } finally {
       setLoading(null);
     }

@@ -55,6 +55,21 @@ export class BillingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post("confirm-session")
+  confirmSession(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { sessionId?: string },
+  ) {
+    if (!body.sessionId) {
+      return this.billing.getEntitlement(user.userId).then((entitlement) => ({
+        confirmed: false,
+        entitlement,
+      }));
+    }
+    return this.billing.confirmCheckoutSession(user.userId, body.sessionId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post("dev-grant")
   devGrant(@CurrentUser() user: AuthUser, @Query("days") days?: string) {
     return this.billing.devGrant(user.userId, days ? Number(days) : 30);

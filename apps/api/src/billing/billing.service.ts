@@ -147,7 +147,7 @@ export class BillingService {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${webUrl}/plus?success=1`,
+      success_url: `${webUrl}/plus?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/plus?canceled=1`,
       metadata: {
         attuneUserId: userId,
@@ -178,6 +178,46 @@ export class BillingService {
       return_url: `${webUrl}/plus`,
     });
     return { url: session.url };
+  }
+
+  /**
+   * Confirm a Checkout session after redirect (covers delayed/missing webhooks).
+   * Only grants Plus when Stripe reports the session paid/complete for this user.
+   */
+  async confirmCheckoutSession(userId: string, sessionId: string) {
+    if (!this.stripe) {
+      throw new ServiceUnavailableException("Stripe is not configured");
+    }
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription"],
+    });
+    if (session.metadata?.attuneUserId && session.metadata.attuneUserId !== userId) {
+      throw new ForbiddenException("Checkout session does not belong to this user");
+    }
+    if (session.status !== "complete" || session.payment_status !== "paid") {
+      return { confirmed: false, entitlement: await this.getEntitlement(userId) };
+    }
+
+    const subscription =
+      typeof session.subscription === "string"
+        ? await this.stripe.subscriptions.retrieve(session.subscription)
+        : session.subscription;
+
+    if (!subscription) {
+      return { confirmed: false, entitlement: await this.getEntitlement(userId) };
+    }
+
+    await this.grantPlus(userId, {
+      provider: "stripe",
+      providerCustomerId: String(session.customer ?? ""),
+      providerSubscriptionId: subscription.id,
+      productId: session.metadata?.productId,
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    });
+
+    return { confirmed: true, entitlement: await this.getEntitlement(userId) };
   }
 
   async grantPlus(
