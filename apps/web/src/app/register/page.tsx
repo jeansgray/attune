@@ -40,10 +40,10 @@ export default function RegisterPage() {
       <SiteNav />
       <main className="container">
         <form className="auth-panel" onSubmit={onSubmit}>
-          <h1 className="brand" style={{ marginTop: 0 }}>
-            Join Attune
-          </h1>
-          <p className="meta">Build a needs profile. Match on what actually matters.</p>
+          <h1 style={{ marginTop: 0 }}>Join Attune</h1>
+          <p className="meta">
+            Friends, romance, or both — build a needs profile and match on what matters.
+          </p>
           {error ? <p className="error">{error}</p> : null}
           <div className="field">
             <label htmlFor="displayName">Display name</label>

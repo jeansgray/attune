@@ -11,6 +11,19 @@ export function setToken(token: string | null) {
   else localStorage.removeItem("attune_token");
 }
 
+function extractErrorMessage(err: unknown): string {
+  if (!err || typeof err !== "object") return "Request failed";
+  const e = err as { message?: unknown; error?: string };
+  if (typeof e.message === "string") return e.message;
+  if (e.message && typeof e.message === "object") {
+    const nested = e.message as { message?: string };
+    if (typeof nested.message === "string") return nested.message;
+  }
+  if (Array.isArray(e.message)) return e.message.join(", ");
+  if (typeof e.error === "string") return e.error;
+  return "Request failed";
+}
+
 export async function api<T>(
   path: string,
   opts: RequestInit & { auth?: boolean } = {},
@@ -29,7 +42,7 @@ export async function api<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message ?? err.error ?? "Request failed");
+    throw new Error(extractErrorMessage(err));
   }
   return res.json() as Promise<T>;
 }

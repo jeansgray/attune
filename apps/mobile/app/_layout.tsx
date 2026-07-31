@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ title: "Log in" }} />
         <Stack.Screen name="discover" options={{ title: "Discover" }} />
         <Stack.Screen name="matches" options={{ title: "Matches" }} />
+        <Stack.Screen name="plus" options={{ title: "Attune Plus" }} />
         <Stack.Screen name="chat/[id]" options={{ title: "Chat" }} />
       </Stack>
     </>

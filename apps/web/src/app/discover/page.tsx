@@ -1,10 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { INTENT_LABELS, NEUROTYPE_LABELS, type NeurotypeTag } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
 import { api, getToken } from "@/lib/api";
+
+type Entitlement = {
+  isPlus: boolean;
+  likesRemainingToday: number | null;
+  dailyLikeLimit: number;
+};
 
 type DiscoverCard = {
   userId: string;
@@ -24,6 +31,7 @@ type DiscoverCard = {
 export default function DiscoverPage() {
   const router = useRouter();
   const [items, setItems] = useState<DiscoverCard[]>([]);
+  const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -32,8 +40,9 @@ export default function DiscoverPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await api<DiscoverCard[]>("/discover");
-      setItems(data);
+      const data = await api<{ entitlement: Entitlement; results: DiscoverCard[] }>("/discover");
+      setItems(data.results);
+      setEntitlement(data.entitlement);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
@@ -51,8 +60,9 @@ export default function DiscoverPage() {
 
   async function like(card: DiscoverCard) {
     setBusyId(card.userId);
+    setError("");
     try {
-      const res = await api<{ matched: boolean }>("/likes", {
+      const res = await api<{ matched: boolean; entitlement: Entitlement }>("/likes", {
         method: "POST",
         body: JSON.stringify({
           toUserId: card.userId,
@@ -63,11 +73,16 @@ export default function DiscoverPage() {
         }),
       });
       setItems((prev) => prev.filter((i) => i.userId !== card.userId));
+      setEntitlement(res.entitlement);
       if (res.matched) {
         alert(`It's a match with ${card.profile.displayName}!`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Like failed");
+      const message = err instanceof Error ? err.message : "Like failed";
+      setError(message);
+      if (message.toLowerCase().includes("attune plus") || message.toLowerCase().includes("likes per day")) {
+        // soft nudge — stay on page
+      }
     } finally {
       setBusyId(null);
     }
@@ -76,12 +91,38 @@ export default function DiscoverPage() {
   return (
     <>
       <SiteNav authed />
-      <main className="container" style={{ paddingBottom: "3rem" }}>
-        <h1 className="brand">Discover</h1>
-        <p className="meta">Ranked by needs compatibility — not popularity.</p>
-        {error ? <p className="error">{error}</p> : null}
+      <main className="container">
+        <div className="page-head">
+          <div>
+            <h1>Discover</h1>
+            <p className="meta">Ranked by needs compatibility — not popularity.</p>
+          </div>
+          <div className="meta" style={{ textAlign: "right" }}>
+            {entitlement?.isPlus ? (
+              <span className="score">Attune Plus</span>
+            ) : (
+              <>
+                <div>
+                  {entitlement?.likesRemainingToday ?? "—"} / {entitlement?.dailyLikeLimit ?? 5} likes
+                  left today
+                </div>
+                <Link href="/plus" style={{ color: "var(--teal)", fontWeight: 600 }}>
+                  Upgrade for unlimited →
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+        {error ? (
+          <p className="error">
+            {error}{" "}
+            {error.toLowerCase().includes("plus") || error.toLowerCase().includes("likes per day") ? (
+              <Link href="/plus">Get Attune Plus</Link>
+            ) : null}
+          </p>
+        ) : null}
         {loading ? <p className="meta">Tuning your feed…</p> : null}
-        {!loading && items.length === 0 ? (
+        {!loading && !error && items.length === 0 ? (
           <p className="meta">No more profiles right now. Check matches or tweak your needs.</p>
         ) : null}
         <div className="discover-list">
@@ -89,7 +130,10 @@ export default function DiscoverPage() {
             <article className="profile-card" key={card.userId}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={card.profile.photoUrls[0] ?? "https://api.dicebear.com/9.x/shapes/svg?seed=attune"}
+                src={
+                  card.profile.photoUrls[0] ??
+                  "https://api.dicebear.com/9.x/lorelei/svg?seed=attune&backgroundColor=d7ebe4"
+                }
                 alt=""
               />
               <div>
@@ -100,7 +144,7 @@ export default function DiscoverPage() {
                       {card.profile.city ?? "Somewhere"} · battery {card.profile.socialBattery}
                     </p>
                   </div>
-                  <span className="score">{card.score.total}% attune</span>
+                  <span className="score">{card.score.total}% match</span>
                 </div>
                 <p style={{ margin: "0.6rem 0" }}>{card.profile.bio}</p>
                 <div className="chip-row">
@@ -138,17 +182,17 @@ export default function DiscoverPage() {
                     Pass
                   </button>
                 </div>
-                <p className="meta" style={{ marginTop: "0.6rem" }}>
-                  Needs match {card.score.vectorSimilarity}% · shared interests{" "}
-                  {card.score.interestBonus}%
-                </p>
+                {card.score.interestBonus > 0 ? (
+                  <p className="meta" style={{ marginTop: "0.6rem" }}>
+                    Shared interests boost this match
+                  </p>
+                ) : null}
               </div>
             </article>
           ))}
         </div>
         <p className="meta" style={{ marginTop: "2rem" }}>
-          Looking for something specific? Intents use labels like{" "}
-          {Object.values(INTENT_LABELS).slice(0, 3).join(", ")}.
+          Filter by intent anytime — {Object.values(INTENT_LABELS).join(", ")}.
         </p>
       </main>
     </>

@@ -7,8 +7,8 @@ export default function Home() {
     <View style={styles.wrap}>
       <Text style={styles.brand}>Attune</Text>
       <Text style={styles.lede}>
-        Dating matched on social wants, sensory needs, and communication — for
-        neurodivergent connection.
+        Friends and dating matched on social wants, sensory needs, and
+        communication — for neurodivergent connection.
       </Text>
       <Link href="/login" style={styles.btn}>
         <Text style={styles.btnText}>Log in / Demo</Text>

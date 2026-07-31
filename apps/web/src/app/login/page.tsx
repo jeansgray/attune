@@ -42,9 +42,7 @@ export default function LoginPage() {
       <SiteNav />
       <main className="container">
         <form className="auth-panel" onSubmit={onSubmit}>
-          <h1 className="brand" style={{ marginTop: 0 }}>
-            Welcome back
-          </h1>
+          <h1 style={{ marginTop: 0 }}>Welcome back</h1>
           <p className="meta">Demo: you@attune.demo / password123</p>
           {error ? <p className="error">{error}</p> : null}
           <div className="field">

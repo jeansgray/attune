@@ -26,9 +26,16 @@ type Card = {
   prompts: { id: string; promptText: string; answer: string }[];
 };
 
+type Entitlement = {
+  isPlus: boolean;
+  likesRemainingToday: number | null;
+  dailyLikeLimit: number;
+};
+
 export default function Discover() {
   const router = useRouter();
   const [items, setItems] = useState<Card[]>([]);
+  const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,18 +44,26 @@ export default function Discover() {
       router.replace("/login");
       return;
     }
-    api<Card[]>("/discover")
-      .then(setItems)
+    api<{ results: Card[]; entitlement: Entitlement }>("/discover")
+      .then((data) => {
+        setItems(data.results);
+        setEntitlement(data.entitlement);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed"))
       .finally(() => setLoading(false));
   }, [router]);
 
   async function like(card: Card) {
-    await api("/likes", {
-      method: "POST",
-      body: JSON.stringify({ toUserId: card.userId, promptId: card.prompts[0]?.id }),
-    });
-    setItems((prev) => prev.filter((i) => i.userId !== card.userId));
+    try {
+      const res = await api<{ entitlement: Entitlement }>("/likes", {
+        method: "POST",
+        body: JSON.stringify({ toUserId: card.userId, promptId: card.prompts[0]?.id }),
+      });
+      setEntitlement(res.entitlement);
+      setItems((prev) => prev.filter((i) => i.userId !== card.userId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Like failed");
+    }
   }
 
   if (loading) {
@@ -61,9 +76,18 @@ export default function Discover() {
 
   return (
     <View style={styles.wrap}>
-      <Pressable onPress={() => router.push("/matches")}>
-        <Text style={styles.link}>View matches →</Text>
-      </Pressable>
+      <View style={styles.row}>
+        <Pressable onPress={() => router.push("/matches")}>
+          <Text style={styles.link}>Matches →</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push("/plus")}>
+          <Text style={styles.link}>
+            {entitlement?.isPlus
+              ? "Plus ✓"
+              : `${entitlement?.likesRemainingToday ?? "—"} likes · Plus`}
+          </Text>
+        </Pressable>
+      </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
         data={items}

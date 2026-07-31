@@ -1,18 +1,28 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { LikeSchema } from "@attune/shared";
 import type { z } from "zod";
+import { BillingService } from "../billing/billing.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 type LikeInput = z.infer<typeof LikeSchema>;
 
 @Injectable()
 export class LikesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private billing: BillingService,
+  ) {}
 
   async like(fromUserId: string, input: LikeInput) {
     if (fromUserId === input.toUserId) {
       throw new ConflictException("Cannot like yourself");
     }
+
+    await this.billing.assertCanLike(fromUserId);
 
     const target = await this.prisma.user.findUnique({ where: { id: input.toUserId } });
     if (!target) throw new NotFoundException("User not found");
@@ -55,10 +65,12 @@ export class LikesService {
       });
     }
 
-    return { like, matched: Boolean(match), match };
+    const entitlement = await this.billing.getEntitlement(fromUserId);
+    return { like, matched: Boolean(match), match, entitlement };
   }
 
   async incoming(userId: string) {
+    await this.billing.assertCanSeeWhoLikedYou(userId);
     return this.prisma.like.findMany({
       where: { toUserId: userId },
       include: {
@@ -67,5 +79,24 @@ export class LikesService {
       },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /** Blurred preview for free users — count only. */
+  async incomingPreview(userId: string) {
+    const entitlement = await this.billing.getEntitlement(userId);
+    const count = await this.prisma.like.count({ where: { toUserId: userId } });
+    if (entitlement.isPlus) {
+      return {
+        locked: false,
+        count,
+        likes: await this.incoming(userId),
+      };
+    }
+    return {
+      locked: true,
+      count,
+      likes: [],
+      message: "Upgrade to Attune Plus to see who liked you.",
+    };
   }
 }

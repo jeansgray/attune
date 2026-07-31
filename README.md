@@ -1,6 +1,6 @@
 # Attune
 
-Dating for neurodivergent adults — matched on **social wants, sensory needs, and communication**, not neurotypical scripts.
+Friends and dating for neurodivergent adults — matched on **social wants, sensory needs, and communication**, not neurotypical scripts.
 
 Monorepo:
 
@@ -55,6 +55,24 @@ Optional neurotype tags (identity). Score from:
 - Connection style + relationship intent
 - Shared special interests
 
+## Monetization (Attune Plus)
+
+Freemium: **5 likes/day** on free. Plus unlocks unlimited likes, see who liked you, advanced filters, discover priority.
+
+| Channel | Billing |
+|---------|---------|
+| Web | Stripe Checkout + Customer Portal |
+| iOS / Android | RevenueCat → App Store / Play IAP |
+
+Local Plus without Stripe: `POST /api/billing/dev-grant` (enabled when not production).
+
+Launch docs:
+- [docs/PRODUCTION.md](docs/PRODUCTION.md) — Vercel + Railway production deploy
+- [docs/STORE_LAUNCH.md](docs/STORE_LAUNCH.md) — App Store / Play checklist
+- [docs/INSTAGRAM_MARKETING.md](docs/INSTAGRAM_MARKETING.md) — content calendar + captions + ads
+
 ## Safety
 
 Report + block endpoints under `/api/safety`. Community norms: direct communication, consent, no masking pressure.
+
+Legal pages: `/privacy`, `/terms`.

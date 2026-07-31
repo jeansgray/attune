@@ -54,7 +54,9 @@ export default function ChatPage() {
     <>
       <SiteNav authed />
       <main className="container" style={{ paddingBottom: "3rem" }}>
-        <h1 className="brand">Chat</h1>
+        <div className="page-head">
+          <h1>Chat</h1>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         <div className="chat-list" style={{ marginBottom: "1rem" }}>
           {messages.map((m) => (

@@ -115,9 +115,7 @@ export default function OnboardingPage() {
       <SiteNav authed />
       <main className="container">
         <form className="panel wide" onSubmit={finish}>
-          <h1 className="brand" style={{ marginTop: 0 }}>
-            Your needs profile
-          </h1>
+          <h1 style={{ marginTop: 0 }}>Your needs profile</h1>
           <p className="meta">Step {step + 1} of 3 — this powers your Attune match score.</p>
           {error ? <p className="error">{error}</p> : null}
 
@@ -234,7 +232,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div className="field">
-                <label>Looking for</label>
+                <label>Looking for (friends, romance, or both)</label>
                 <div className="chip-row">
                   {RelationshipIntents.map((intent) => (
                     <button

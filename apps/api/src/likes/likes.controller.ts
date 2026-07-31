@@ -20,6 +20,6 @@ export class LikesController {
 
   @Get("incoming")
   incoming(@CurrentUser() user: AuthUser) {
-    return this.likes.incoming(user.userId);
+    return this.likes.incomingPreview(user.userId);
   }
 }

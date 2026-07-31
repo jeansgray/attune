@@ -72,6 +72,6 @@ export const DEFAULT_NEEDS: NeedsProfile = {
   routinePreference: 60,
   spontaneityComfort: 35,
   aloneTogetherComfort: 75,
-  intents: ["romance", "slow_burn"],
+  intents: ["friendship", "romance", "slow_burn"],
   dealbreakers: [],
 };

@@ -26,6 +26,26 @@ model User {
   blocksGot    Block[]       @relation("BlocksGot")
   reportsMade  Report[]      @relation("ReportsMade")
   reportsGot   Report[]      @relation("ReportsGot")
+  subscription Subscription?
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 String    @default("free")
+  status               String    @default("inactive")
+  provider             String?
+  providerCustomerId   String?
+  providerSubscriptionId String?
+  productId            String?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([providerCustomerId])
+  @@index([providerSubscriptionId])
 }
 
 model Profile {

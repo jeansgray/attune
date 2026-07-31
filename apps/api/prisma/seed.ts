@@ -239,15 +239,45 @@ function expandSeeds(): SeedUser[] {
     ["chess", "cooking"],
     ["embroidery", "podcasts"],
   ];
+  const bioTwists = [
+    "Currently deep in a special interest rabbit hole and looking for someone who gets it.",
+    "Prefer planned hangs and clear plans — surprise parties are a hard no.",
+    "Text-first, coffee-second. Loud bars are not my love language.",
+    "I show care by researching solutions and sharing playlists.",
+    "Looking for slow-burn connection with room for recovery days.",
+    "Parallel play enthusiast. Bring a book; I'll bring mine.",
+    "Direct communicator. Please say what you mean — I will too.",
+    "Sensory-friendly dates only: parks, museums, quiet kitchens.",
+  ];
+  const promptTwists = [
+    "How moss grows on city walls, and why that feels hopeful.",
+    "Building tiny mechanical keyboards and naming every switch.",
+    "The lore of one anime I've rewatched twelve times.",
+    "Cataloging birds by the sound they make at 6am.",
+    "Sourdough ratios and the science of a perfect crust.",
+    "Mapping hiking trails that never get crowded.",
+    "Learning one language through music lyrics only.",
+    "The perfect rainy-day board game stack.",
+  ];
   for (let i = 0; i < 15; i++) {
     const base = seeds[i % seeds.length]!;
+    const twist = bioTwists[i % bioTwists.length]!;
+    const promptAnswer = promptTwists[i % promptTwists.length]!;
     extras.push({
       ...base,
       email: `demo${i + 1}@attune.demo`,
       displayName: `${base.displayName}${i + 1}`,
+      bio: `${base.bio} ${twist}`,
       city: cities[i % cities.length]!,
       specialInterests: interests[i % interests.length]!,
       birthYear: 1988 + (i % 12),
+      prompts: [
+        {
+          promptText: "My special interest rabbit hole lately is…",
+          answer: promptAnswer,
+        },
+        ...(base.prompts[1] ? [base.prompts[1]] : []),
+      ],
       needs: {
         ...base.needs,
         noiseSensitivity: Math.min(100, Math.max(0, base.needs.noiseSensitivity + ((i % 5) - 2) * 8)),
@@ -284,7 +314,7 @@ async function main() {
             neurotypeTags: s.neurotypeTags,
             specialInterests: s.specialInterests,
             photoUrls: [
-              `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(s.displayName)}`,
+              `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(s.displayName)}&backgroundColor=d7ebe4`,
             ],
             socialBattery: s.socialBattery,
             onboardingComplete: true,
@@ -319,7 +349,9 @@ async function main() {
           city: "Portland",
           neurotypeTags: ["audhd"],
           specialInterests: ["coding", "sci-fi", "cats"],
-          photoUrls: ["https://api.dicebear.com/9.x/shapes/svg?seed=You"],
+          photoUrls: [
+            "https://api.dicebear.com/9.x/lorelei/svg?seed=You&backgroundColor=d7ebe4",
+          ],
           socialBattery: "medium",
           onboardingComplete: true,
         },

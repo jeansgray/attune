@@ -1,0 +1,12 @@
+node_modules
+.turbo
+.next
+.expo
+.git
+.env
+.env.*
+!.env.example
+apps/web
+apps/mobile
+**/*.md
+docs

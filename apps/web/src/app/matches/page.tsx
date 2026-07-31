@@ -34,8 +34,12 @@ export default function MatchesPage() {
     <>
       <SiteNav authed />
       <main className="container" style={{ paddingBottom: "3rem" }}>
-        <h1 className="brand">Matches</h1>
-        <p className="meta">Mutual likes — chat when your batteries allow.</p>
+        <div className="page-head">
+          <div>
+            <h1>Matches</h1>
+            <p className="meta">Mutual likes — chat when your batteries allow.</p>
+          </div>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         <div className="matches-list">
           {matches.map((m) => (
