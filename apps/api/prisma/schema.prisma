@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile      Profile?
+  needs        NeedsProfile?
+  prompts      Prompt[]
+  likesSent    Like[]        @relation("LikesSent")
+  likesReceived Like[]       @relation("LikesReceived")
+  matchesAsA   Match[]       @relation("MatchUserA")
+  matchesAsB   Match[]       @relation("MatchUserB")
+  messages     Message[]
+  blocksMade   Block[]       @relation("BlocksMade")
+  blocksGot    Block[]       @relation("BlocksGot")
+  reportsMade  Report[]      @relation("ReportsMade")
+  reportsGot   Report[]      @relation("ReportsGot")
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName        String
+  bio                String   @default("")
+  birthYear          Int?
+  gender             String?
+  pronouns           String?
+  city               String?
+  neurotypeTags      String[] @default([])
+  specialInterests   String[] @default([])
+  photoUrls          String[] @default([])
+  socialBattery      String   @default("medium")
+  awayNote           String?
+  onboardingComplete Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model NeedsProfile {
+  id                            String   @id @default(cuid())
+  userId                        String   @unique
+  user                          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communicationStyle            String
+  preferredChannels             String[]
+  replyPace                     String
+  processingTimeNeeded          Int
+  noiseSensitivity              Int
+  lightSensitivity              Int
+  touchComfort                  Int
+  crowdTolerance                Int
+  preferredEnvironments         String[]
+  socialBatterySize             Int
+  recoveryNeed                  Int
+  parallelPlayPreference        Int
+  interactiveHangoutPreference  Int
+  specialInterestDepth          Int
+  routinePreference             Int
+  spontaneityComfort            Int
+  aloneTogetherComfort          Int
+  intents                       String[]
+  dealbreakers                  String[] @default([])
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+}
+
+model Prompt {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promptText String
+  answer     String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  likes      Like[]
+
+  @@index([userId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  fromUser   User     @relation("LikesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  promptId   String?
+  prompt     Prompt?  @relation(fields: [promptId], references: [id], onDelete: SetNull)
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+}
+
+model Match {
+  id        String    @id @default(cuid())
+  userAId   String
+  userBId   String
+  userA     User      @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User      @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([matchId, createdAt])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlocksGot", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model Report {
+  id             String   @id @default(cuid())
+  reporterId     String
+  reportedUserId String
+  reporter       User     @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User     @relation("ReportsGot", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reason         String
+  createdAt      DateTime @default(now())
+}

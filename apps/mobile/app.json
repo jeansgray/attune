@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Attune",
+    "slug": "attune",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "attune",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1714"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.attune.dating"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f1714"
+      },
+      "package": "app.attune.dating"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "replace-after-eas-init"
+      }
+    }
+  }
+}
