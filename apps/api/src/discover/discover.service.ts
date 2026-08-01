@@ -44,7 +44,7 @@ export class DiscoverService {
       include: {
         profile: true,
         needs: true,
-        prompts: { orderBy: { sortOrder: "asc" }, take: 3 },
+        prompts: { orderBy: { sortOrder: "asc" }, take: 5 },
         subscription: true,
       },
     });

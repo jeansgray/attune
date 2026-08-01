@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import type { NeedsProfile as NeedsInput, UpdateProfileInput } from "@attune/shared";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  MAX_PROMPTS,
+  type NeedsProfile as NeedsInput,
+  type UpdateProfileInput,
+} from "@attune/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -23,17 +27,38 @@ export class ProfilesService {
 
   async upsertPrompt(
     userId: string,
-    input: { promptText: string; answer: string; sortOrder: number },
+    input: {
+      promptText: string;
+      answer?: string;
+      mediaType?: string;
+      mediaUrl?: string | null;
+      sortOrder: number;
+    },
     promptId?: string,
   ) {
+    const data = {
+      promptText: input.promptText,
+      answer: input.answer ?? "",
+      mediaType: input.mediaType ?? "text",
+      mediaUrl: input.mediaUrl ?? null,
+      sortOrder: input.sortOrder,
+    };
     if (promptId) {
+      const existing = await this.prisma.prompt.findFirst({
+        where: { id: promptId, userId },
+      });
+      if (!existing) throw new NotFoundException("Prompt not found");
       return this.prisma.prompt.update({
         where: { id: promptId },
-        data: input,
+        data,
       });
     }
+    const count = await this.prisma.prompt.count({ where: { userId } });
+    if (count >= MAX_PROMPTS) {
+      throw new BadRequestException(`You can add up to ${MAX_PROMPTS} prompts`);
+    }
     return this.prisma.prompt.create({
-      data: { userId, ...input },
+      data: { userId, ...data },
     });
   }
 

@@ -57,3 +57,22 @@ export async function uploadPhoto(file: File) {
     body: form,
   });
 }
+
+export async function uploadMedia(file: File, kind: "photo" | "voice" | "video") {
+  const form = new FormData();
+  form.append("file", file);
+  return api<{ url: string; kind?: string; photoUrls?: string[] }>(
+    `/profiles/me/media?kind=${kind}`,
+    {
+      method: "POST",
+      body: form,
+    },
+  );
+}
+
+export async function removePhoto(url: string) {
+  return api<{ photoUrls: string[] }>("/profiles/me/photos", {
+    method: "DELETE",
+    body: JSON.stringify({ url }),
+  });
+}

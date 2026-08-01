@@ -100,7 +100,9 @@ model Prompt {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   promptText String
-  answer     String
+  answer     String   @default("")
+  mediaType  String   @default("text") // text | voice | video
+  mediaUrl   String?
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   likes      Like[]

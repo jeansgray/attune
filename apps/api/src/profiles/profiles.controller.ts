@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -20,7 +21,7 @@ import { memoryStorage } from "multer";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { ZodValidationPipe } from "../common/zod.pipe";
-import { PhotosService } from "./photos.service";
+import { PhotosService, type MediaKind } from "./photos.service";
 import { ProfilesService } from "./profiles.service";
 
 @Controller("profiles")
@@ -50,13 +51,31 @@ export class ProfilesController {
     @CurrentUser() user: AuthUser,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.photos.upload(user.userId, file);
+    return this.photos.uploadPhoto(user.userId, file);
+  }
+
+  @Post("me/media")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 40 * 1024 * 1024 },
+    }),
+  )
+  uploadMedia(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: Express.Multer.File,
+    @Query("kind") kind?: string,
+  ) {
+    const mediaKind = (kind === "voice" || kind === "video" || kind === "photo"
+      ? kind
+      : "photo") as MediaKind;
+    return this.photos.uploadMedia(user.userId, mediaKind, file);
   }
 
   @Delete("me/photos")
   removePhoto(@CurrentUser() user: AuthUser, @Body() body: { url?: string }) {
     if (!body.url) return this.profiles.updateProfile(user.userId, { photoUrls: [] });
-    return this.photos.remove(user.userId, body.url);
+    return this.photos.removePhoto(user.userId, body.url);
   }
 
   @Post("me/needs")

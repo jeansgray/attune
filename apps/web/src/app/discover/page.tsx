@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { INTENT_LABELS, NEUROTYPE_LABELS, type NeurotypeTag } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
+import { ProfileGallery } from "@/components/ProfileGallery";
+import { PromptCard } from "@/components/PromptCard";
 import { SafetyActions } from "@/components/SafetyActions";
 import { api, getToken } from "@/lib/api";
 
@@ -26,7 +28,13 @@ type DiscoverCard = {
     photoUrls: string[];
     socialBattery: string;
   };
-  prompts: { id: string; promptText: string; answer: string }[];
+  prompts: {
+    id: string;
+    promptText: string;
+    answer: string;
+    mediaType?: string;
+    mediaUrl?: string | null;
+  }[];
 };
 
 export default function DiscoverPage() {
@@ -129,14 +137,7 @@ export default function DiscoverPage() {
         <div className="discover-list">
           {items.map((card) => (
             <article className="profile-card" key={card.userId}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={
-                  card.profile.photoUrls[0] ??
-                  "https://api.dicebear.com/9.x/lorelei/svg?seed=attune&backgroundColor=d7ebe4"
-                }
-                alt=""
-              />
+              <ProfileGallery photoUrls={card.profile.photoUrls} alt={card.profile.displayName} />
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
                   <div>
@@ -160,12 +161,11 @@ export default function DiscoverPage() {
                     </span>
                   ))}
                 </div>
-                {card.prompts[0] ? (
-                  <div className="prompt-block">
-                    <div className="q">{card.prompts[0].promptText}</div>
-                    <div>{card.prompts[0].answer}</div>
-                  </div>
-                ) : null}
+                <div className="prompt-stack">
+                  {card.prompts.map((p) => (
+                    <PromptCard key={p.id} prompt={p} />
+                  ))}
+                </div>
                 <div
                   style={{
                     marginTop: "1rem",

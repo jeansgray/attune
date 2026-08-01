@@ -6,6 +6,8 @@ import {
   DEFAULT_NEEDS,
   DateEnvironments,
   INTENT_LABELS,
+  MIN_PHOTOS,
+  MIN_PROMPTS,
   NEUROTYPE_LABELS,
   NeurotypeTags,
   PreferredChannels,
@@ -14,7 +16,9 @@ import {
   type NeurotypeTag,
 } from "@attune/shared";
 import { SiteNav } from "@/components/AppNav";
-import { api, getToken, uploadPhoto } from "@/lib/api";
+import { PhotoGrid } from "@/components/PhotoGrid";
+import { PromptBuilder, createInitialPrompts, type DraftPrompt } from "@/components/PromptBuilder";
+import { api, getToken } from "@/lib/api";
 
 type SliderKey = keyof Pick<
   NeedsProfile,
@@ -49,8 +53,16 @@ const SLIDERS: { key: SliderKey; label: string }[] = [
   { key: "aloneTogetherComfort", label: "Alone-together comfort" },
 ];
 
+const STEPS = ["Photos & basics", "Prompts", "Connection style", "Sensory needs"];
+
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
+
+function promptReady(p: DraftPrompt) {
+  if (!p.promptText.trim()) return false;
+  if (p.mediaType === "text") return p.answer.trim().length > 0;
+  return Boolean(p.mediaUrl);
 }
 
 export default function OnboardingPage() {
@@ -62,26 +74,12 @@ export default function OnboardingPage() {
   const [needs, setNeeds] = useState<NeedsProfile>(DEFAULT_NEEDS);
   const [bio, setBio] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [prompts, setPrompts] = useState<DraftPrompt[]>(() => createInitialPrompts(2));
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!getToken()) router.replace("/login");
   }, [router]);
-
-  async function onPhotoSelected(fileList: FileList | null) {
-    const file = fileList?.[0];
-    if (!file) return;
-    setUploading(true);
-    setError("");
-    try {
-      const res = await uploadPhoto(file);
-      setPhotoUrls(res.photoUrls.filter((u) => !u.includes("api.dicebear.com")));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Photo upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   const interestList = useMemo(
     () =>
@@ -93,13 +91,42 @@ export default function OnboardingPage() {
     [interests],
   );
 
+  function validateStep(current: number) {
+    if (current === 0 && photoUrls.length < MIN_PHOTOS) {
+      return "Add at least one profile photo before continuing.";
+    }
+    if (current === 1) {
+      const ready = prompts.filter(promptReady);
+      if (ready.length < MIN_PROMPTS) {
+        return "Finish at least one prompt (text, voice, or video).";
+      }
+      for (const p of prompts) {
+        if (!promptReady(p) && (p.answer.trim() || p.mediaUrl || p.promptText.trim())) {
+          // allow incomplete extra drafts only if empty-ish — require all listed to be ready
+        }
+      }
+      if (prompts.some((p) => !promptReady(p))) {
+        return "Complete each prompt you added, or remove unused ones.";
+      }
+    }
+    if (current === 2) {
+      if (needs.preferredChannels.length < 1 || needs.preferredEnvironments.length < 1) {
+        return "Pick at least one channel and date environment.";
+      }
+    }
+    return "";
+  }
+
   async function finish(e: FormEvent) {
     e.preventDefault();
+    const err = validateStep(3) || validateStep(1) || validateStep(0);
+    if (err) {
+      setError(err);
+      return;
+    }
     setError("");
+    setSaving(true);
     try {
-      if (needs.preferredChannels.length < 1 || needs.preferredEnvironments.length < 1) {
-        throw new Error("Pick at least one channel and date environment");
-      }
       await api("/profiles/me", {
         method: "PATCH",
         body: JSON.stringify({
@@ -113,17 +140,23 @@ export default function OnboardingPage() {
         method: "POST",
         body: JSON.stringify(needs),
       });
-      await api("/profiles/me/prompts", {
-        method: "POST",
-        body: JSON.stringify({
-          promptText: "I'm looking for someone who…",
-          answer: "Respects my pacing and says what they mean.",
-          sortOrder: 0,
-        }),
-      });
+      for (const [idx, p] of prompts.filter(promptReady).entries()) {
+        await api("/profiles/me/prompts", {
+          method: "POST",
+          body: JSON.stringify({
+            promptText: p.promptText,
+            answer: p.answer,
+            mediaType: p.mediaType,
+            mediaUrl: p.mediaUrl,
+            sortOrder: idx,
+          }),
+        });
+      }
       router.push("/discover");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save");
+    } catch (saveErr) {
+      setError(saveErr instanceof Error ? saveErr.message : "Could not save");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -132,44 +165,21 @@ export default function OnboardingPage() {
       <SiteNav authed />
       <main className="container">
         <form className="panel wide" onSubmit={finish}>
-          <h1 style={{ marginTop: 0 }}>Your needs profile</h1>
-          <p className="meta">Step {step + 1} of 3 — this powers your Attune match score.</p>
+          <h1 style={{ marginTop: 0 }}>Build your Attune profile</h1>
+          <p className="meta">
+            Step {step + 1} of {STEPS.length} — {STEPS[step]}
+          </p>
           {error ? <p className="error">{error}</p> : null}
 
           {step === 0 && (
             <>
               <div className="field">
-                <label htmlFor="photos">Profile photos</label>
-                <p className="meta" style={{ marginBottom: "0.5rem" }}>
-                  Upload at least one real photo (JPEG/PNG/WebP, up to 5MB). Max 6.
-                </p>
-                <input
-                  id="photos"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  disabled={uploading || photoUrls.length >= 6}
-                  onChange={(e) => void onPhotoSelected(e.target.files)}
+                <label>Photos</label>
+                <PhotoGrid
+                  photoUrls={photoUrls}
+                  onChange={setPhotoUrls}
+                  onError={(m) => setError(m)}
                 />
-                {uploading ? <p className="meta">Uploading…</p> : null}
-                {photoUrls.length ? (
-                  <div className="chip-row" style={{ marginTop: "0.75rem" }}>
-                    {photoUrls.map((url) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={url}
-                        src={url}
-                        alt=""
-                        style={{
-                          width: 72,
-                          height: 72,
-                          objectFit: "cover",
-                          borderRadius: 12,
-                          border: "1px solid var(--line)",
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : null}
               </div>
               <div className="field">
                 <label>Neurotype tags (optional)</label>
@@ -208,6 +218,10 @@ export default function OnboardingPage() {
           )}
 
           {step === 1 && (
+            <PromptBuilder value={prompts} onChange={setPrompts} onError={(m) => setError(m)} />
+          )}
+
+          {step === 2 && (
             <>
               <div className="field">
                 <label>Communication style</label>
@@ -304,7 +318,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <>
               {SLIDERS.map((s) => (
                 <div className="slider-row" key={s.key}>
@@ -331,13 +345,14 @@ export default function OnboardingPage() {
                 Back
               </button>
             ) : null}
-            {step < 2 ? (
+            {step < STEPS.length - 1 ? (
               <button
                 className="btn"
                 type="button"
                 onClick={() => {
-                  if (step === 0 && photoUrls.length < 1) {
-                    setError("Please upload at least one profile photo before continuing.");
+                  const message = validateStep(step);
+                  if (message) {
+                    setError(message);
                     return;
                   }
                   setError("");
@@ -347,8 +362,8 @@ export default function OnboardingPage() {
                 Next
               </button>
             ) : (
-              <button className="btn" type="submit">
-                Save & discover
+              <button className="btn" type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save & discover"}
               </button>
             )}
           </div>
