@@ -135,6 +135,8 @@ export class BillingService {
     const session = await this.stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
+      // Explicit card — Dashboard PMC may still mark cards "unavailable" while account is under review.
+      payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${webUrl}/plus?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${webUrl}/plus?canceled=1`,
