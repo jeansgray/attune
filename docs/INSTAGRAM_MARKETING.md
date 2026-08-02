@@ -52,11 +52,31 @@ Free to start (daily likes). Attune Plus when you want unlimited + see who alrea
 Avoid spammy competitor tags and medical claim language.
 
 ## Paid ads (when ready)
-- Budget start: $10–20/day
-- Geo: English-speaking cities first
-- Creative: Reel #1 or #7
-- Optimize for link clicks → App Store / waitlist
-- Exclude under-18; dating category compliance
+
+**Live web funnel today:** https://attune-web-jeansgray.vercel.app  
+(Use a custom domain before scaling spend.)
+
+### Pre-flight (do these before paid)
+1. Custom domain + HTTPS on web
+2. Privacy/terms email is a real inbox you monitor
+3. Stripe **test** checkout verified → then switch to **live** keys when taking money
+4. Record 2–3 Reels (screen + face/B-roll) from the calendar below
+5. Instagram Business/Creator account + Meta Ads Manager
+6. Pixel / Meta Conversions API optional at $50+/day; start with link clicks
+
+### Spend plan
+- Budget start: **$10–20/day** for 7–14 days
+- Geo: English-speaking cities first (US/CA/UK/AU)
+- Creative: Reel #1 or #7; iterate weekly
+- Optimize for **link clicks** → site register / Plus
+- Audience: interests around neurodiversity, autism/ADHD creators (avoid health claims)
+- Exclude under-18; dating category compliance; 18+ landing
+- Kill ads that don’t produce signups after ~$50 spend; scale winners slowly
+
+### Funnel to sell Attune Plus
+1. Ad → landing → register (18+) → onboarding photos/prompts → Discover swipe
+2. Soft paywall when free likes run out → Attune Plus (Stripe)
+3. Retarget site visitors with “unlimited likes / see who liked you” creative
 
 ## Brand voice
 Calm, direct, specific. No “crush the dating game.” No competitor name-drops. Celebrate special interests and recovery days.
