@@ -106,7 +106,8 @@ export function SwipeDeck<T extends { userId: string }>({
       <div className="swipe-stage">
         {next ? (
           <div className="swipe-card swipe-card-next" aria-hidden>
-            {renderCard(next)}
+            {/* cast: monorepo can resolve duplicate @types/react */}
+            {renderCard(next) as unknown as never}
           </div>
         ) : null}
         <div
@@ -126,7 +127,7 @@ export function SwipeDeck<T extends { userId: string }>({
           <div className="swipe-stamp pass" style={{ opacity: passOpacity }}>
             Pass
           </div>
-          {renderCard(top)}
+          {renderCard(top) as unknown as never}
         </div>
       </div>
       <div className="swipe-actions">
