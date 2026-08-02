@@ -86,6 +86,17 @@ export class BillingController {
     return this.billing.handleStripeWebhook(raw, signature);
   }
 
+  /** Alias — Stripe dashboard quickstart often uses /billing/webhook */
+  @SkipThrottle()
+  @Post("webhook")
+  stripeWebhookAlias(
+    @Req() req: Request & { rawBody?: Buffer },
+    @Headers("stripe-signature") signature: string,
+  ) {
+    const raw = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
+    return this.billing.handleStripeWebhook(raw, signature);
+  }
+
   @Post("revenuecat")
   revenueCat(@Body() body: unknown) {
     return this.billing.handleRevenueCatWebhook(body as never);
