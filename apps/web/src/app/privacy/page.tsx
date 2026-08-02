@@ -32,7 +32,7 @@ export default function PrivacyPage() {
           <h2 style={{ color: "var(--ink)" }}>Your choices</h2>
           <p>
             You can update or delete profile content, cancel subscriptions via Stripe / App Store /
-            Play Store, and request account deletion by emailing privacy@attune.app.
+            Play Store, and delete your account anytime in Settings (or email privacy@attune.app).
           </p>
           <h2 style={{ color: "var(--ink)" }}>Contact</h2>
           <p>

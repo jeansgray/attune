@@ -3,8 +3,10 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import type { LoginInput, RegisterInput } from "@attune/shared";
+import { del } from "@vercel/blob";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -13,6 +15,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private config: ConfigService,
   ) {}
 
   async register(input: RegisterInput) {
@@ -61,6 +64,34 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
     const { passwordHash: _, ...safe } = user;
     return safe;
+  }
+
+  /**
+   * Permanently delete the account and related rows (Prisma cascades).
+   * Best-effort cleanup of Vercel Blob media owned by this user.
+   */
+  async deleteAccount(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true, prompts: true },
+    });
+    if (!user) throw new UnauthorizedException();
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) throw new UnauthorizedException("Password incorrect");
+
+    const urls = [
+      ...(user.profile?.photoUrls ?? []),
+      ...user.prompts.map((p) => p.mediaUrl).filter((u): u is string => Boolean(u)),
+    ].filter((u) => u.includes("blob.vercel-storage.com"));
+
+    const token = this.config.get<string>("BLOB_READ_WRITE_TOKEN");
+    if (token && urls.length) {
+      await Promise.allSettled(urls.map((url) => del(url, { token })));
+    }
+
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { deleted: true };
   }
 
   private tokenResponse(

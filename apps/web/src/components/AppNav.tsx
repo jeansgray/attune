@@ -36,6 +36,12 @@ export function SiteNav({ authed = false }: { authed?: boolean }) {
                 >
                   Needs
                 </Link>
+                <Link
+                  className={pathname?.startsWith("/settings") ? "active" : ""}
+                  href="/settings"
+                >
+                  Settings
+                </Link>
                 <button
                   className="btn ghost"
                   type="button"

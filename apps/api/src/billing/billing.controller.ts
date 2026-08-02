@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { FREE_DAILY_LIKES, PLUS_PRODUCTS, type PlusProductKey } from "@attune/shared";
 import type { Request } from "express";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
@@ -75,6 +76,7 @@ export class BillingController {
     return this.billing.devGrant(user.userId, days ? Number(days) : 30);
   }
 
+  @SkipThrottle()
   @Post("stripe/webhook")
   stripeWebhook(
     @Req() req: Request & { rawBody?: Buffer },

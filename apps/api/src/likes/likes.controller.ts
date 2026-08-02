@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { LikeSchema } from "@attune/shared";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -10,6 +11,7 @@ import { LikesService } from "./likes.service";
 export class LikesController {
   constructor(private likes: LikesService) {}
 
+  @Throttle({ default: { limit: 40, ttl: 60_000 } })
   @Post()
   like(
     @CurrentUser() user: AuthUser,

@@ -126,8 +126,8 @@ This is **not legal advice** — talk to an IP attorney for your jurisdiction.
 
 ## Production hardening backlog (security-relevant)
 
-- [ ] Rate limit auth, likes, messages, reports
-- [ ] Self-serve account + media deletion
+- [x] Rate limit auth, likes, messages, reports
+- [x] Self-serve account + media deletion
 - [ ] CSP / security headers on Vercel
 - [ ] RevenueCat webhook shared secret
 - [ ] Turnstile/hCaptcha on register if bot signups appear
