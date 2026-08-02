@@ -1,25 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
-type Props<T extends { userId: string }> = {
-  items: T[];
+type Props = {
+  hasCard: boolean;
   disabled?: boolean;
-  onLike: (item: T) => Promise<void> | void;
-  onPass: (item: T) => void;
-  renderCard: (item: T) => ReactElement;
-}
+  onLike: () => Promise<void> | void;
+  onPass: () => void;
+  /** Pre-rendered card nodes (avoids duplicate @types/react ReactNode conflicts). */
+  topCard: JSX.Element | null;
+  nextCard?: JSX.Element | null;
+};
 
 const THRESHOLD = 110;
 const MAX_ROTATION = 14;
 
-export function SwipeDeck<T extends { userId: string }>({
-  items,
+export function SwipeDeck({
+  hasCard,
   disabled,
   onLike,
   onPass,
-  renderCard,
-}: Props<T>) {
+  topCard,
+  nextCard = null,
+}: Props) {
   const [dragX, setDragX] = useState(0);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -27,7 +36,6 @@ export function SwipeDeck<T extends { userId: string }>({
   const [busy, setBusy] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const dragXRef = useRef(0);
-  const top = items[0];
 
   const settle = useCallback(() => {
     setDragX(0);
@@ -40,43 +48,42 @@ export function SwipeDeck<T extends { userId: string }>({
 
   const commit = useCallback(
     async (dir: "left" | "right") => {
-      if (!top || busy || disabled) return;
+      if (!hasCard || busy || disabled) return;
       setBusy(true);
       setExit(dir);
       setDragX(dir === "right" ? 480 : -480);
       await new Promise((r) => setTimeout(r, 220));
       try {
-        if (dir === "right") await onLike(top);
-        else onPass(top);
+        if (dir === "right") await onLike();
+        else onPass();
       } finally {
         settle();
         setBusy(false);
       }
     },
-    [busy, disabled, onLike, onPass, settle, top],
+    [busy, disabled, hasCard, onLike, onPass, settle],
   );
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (busy || disabled || !top) return;
+      if (busy || disabled || !hasCard) return;
       if (e.key === "ArrowRight") void commit("right");
       if (e.key === "ArrowLeft") void commit("left");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, commit, disabled, top]);
+  }, [busy, commit, disabled, hasCard]);
 
-  function onPointerDown(e: React.PointerEvent) {
-    if (busy || disabled || !top) return;
-    // Don't start a swipe from interactive controls (gallery/buttons/media)
+  function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (busy || disabled || !hasCard) return;
     const target = e.target as HTMLElement;
     if (target.closest("button, a, input, textarea, select, audio, video, label")) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     start.current = { x: e.clientX, y: e.clientY };
     setDragging(true);
   }
 
-  function onPointerMove(e: React.PointerEvent) {
+  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     if (!start.current || busy) return;
     const dx = e.clientX - start.current.x;
     const dy = e.clientY - start.current.y;
@@ -93,21 +100,19 @@ export function SwipeDeck<T extends { userId: string }>({
     else settle();
   }
 
-  if (!top) return null;
+  if (!hasCard || !topCard) return null;
 
   const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, dragX / 18));
   const likeOpacity = Math.min(1, Math.max(0, dragX / THRESHOLD));
   const passOpacity = Math.min(1, Math.max(0, -dragX / THRESHOLD));
-  const next = items[1];
 
   return (
     <div className="swipe-deck">
       <p className="meta swipe-hint">Swipe right to like · left to pass · or use the buttons</p>
       <div className="swipe-stage">
-        {next ? (
+        {nextCard ? (
           <div className="swipe-card swipe-card-next" aria-hidden>
-            {/* cast: monorepo can resolve duplicate @types/react */}
-            {renderCard(next) as unknown as never}
+            {nextCard}
           </div>
         ) : null}
         <div
@@ -127,7 +132,7 @@ export function SwipeDeck<T extends { userId: string }>({
           <div className="swipe-stamp pass" style={{ opacity: passOpacity }}>
             Pass
           </div>
-          {renderCard(top) as unknown as never}
+          {topCard}
         </div>
       </div>
       <div className="swipe-actions">
