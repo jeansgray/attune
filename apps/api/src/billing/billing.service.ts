@@ -129,18 +129,7 @@ export class BillingService {
     }
 
     const sub = await this.ensureSubscriptionRow(userId);
-    let customerId = sub.providerCustomerId ?? undefined;
-    if (!customerId) {
-      const customer = await this.stripe.customers.create({
-        email,
-        metadata: { attuneUserId: userId },
-      });
-      customerId = customer.id;
-      await this.prisma.subscription.update({
-        where: { userId },
-        data: { provider: "stripe", providerCustomerId: customerId },
-      });
-    }
+    const customerId = await this.ensureStripeCustomer(userId, email, sub.providerCustomerId);
 
     const webUrl = this.config.get<string>("WEB_URL") ?? "http://localhost:3000";
     const session = await this.stripe.checkout.sessions.create({
@@ -164,6 +153,40 @@ export class BillingService {
     return { url: session.url, sessionId: session.id };
   }
 
+  /** Create or recover a Stripe customer when switching accounts / stale IDs. */
+  private async ensureStripeCustomer(
+    userId: string,
+    email: string,
+    existingId?: string | null,
+  ) {
+    if (!this.stripe) {
+      throw new ServiceUnavailableException("Stripe is not configured");
+    }
+
+    if (existingId) {
+      try {
+        const existing = await this.stripe.customers.retrieve(existingId);
+        if (!("deleted" in existing && existing.deleted)) {
+          return existing.id;
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Stale Stripe customer ${existingId} for ${userId}; creating a new one`,
+        );
+      }
+    }
+
+    const customer = await this.stripe.customers.create({
+      email,
+      metadata: { attuneUserId: userId },
+    });
+    await this.prisma.subscription.update({
+      where: { userId },
+      data: { provider: "stripe", providerCustomerId: customer.id },
+    });
+    return customer.id;
+  }
+
   async createPortalSession(userId: string) {
     if (!this.stripe) {
       throw new ServiceUnavailableException("Stripe is not configured");
@@ -172,9 +195,21 @@ export class BillingService {
     if (!sub.providerCustomerId) {
       throw new ServiceUnavailableException("No Stripe customer on file");
     }
+    let customerId = sub.providerCustomerId;
+    try {
+      const existing = await this.stripe.customers.retrieve(customerId);
+      if ("deleted" in existing && existing.deleted) {
+        throw new ServiceUnavailableException("Stripe customer was deleted");
+      }
+    } catch (err) {
+      if (err instanceof ServiceUnavailableException) throw err;
+      throw new ServiceUnavailableException(
+        "Billing customer is out of date. Start checkout once to refresh, then manage billing.",
+      );
+    }
     const webUrl = this.config.get<string>("WEB_URL") ?? "http://localhost:3000";
     const session = await this.stripe.billingPortal.sessions.create({
-      customer: sub.providerCustomerId,
+      customer: customerId,
       return_url: `${webUrl}/plus`,
     });
     return { url: session.url };
