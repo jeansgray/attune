@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 
 type Props<T extends { userId: string }> = {
   items: T[];
   disabled?: boolean;
   onLike: (item: T) => Promise<void> | void;
   onPass: (item: T) => void;
-  renderCard: (item: T) => ReactNode;
-};
+  renderCard: (item: T) => ReactElement;
+}
 
 const THRESHOLD = 110;
 const MAX_ROTATION = 14;
